@@ -9,10 +9,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
+from urllib.parse import urljoin
 
+import asyncio
 import os
+import re
+import tempfile
 import time
 import requests
 from flask import Flask, jsonify, render_template, request, send_from_directory, make_response
@@ -71,9 +75,9 @@ STATIONS: Dict[str, Dict[str, Any]] = {
         "site": "https://radiocomercial.pt/",
         "search_terms": ["Radio Comercial Portugal", "Rádio Comercial Lisboa", "Comercial Portugal"],
         "streams": [
+            "https://stream-icy.bauermedia.pt/comercial.mp3",
             "https://stream-icy.bauermedia.pt/comercial.aac",
             "https://stream-hls.bauermedia.pt/comercial.aac/playlist.m3u8",
-            "https://stream-icy.bauermedia.pt/comercial.mp3",
             "https://mcrscast.mcr.iol.pt/comercial.mp3",
             "http://mcrscast.mcr.iol.pt/comercial.mp3",
         ],
@@ -117,6 +121,7 @@ STATIONS: Dict[str, Dict[str, Any]] = {
         "site": "https://m80.pt/",
         "search_terms": ["M80 Radio Portugal", "M80 Rádio Lisboa", "M80 Portugal"],
         "streams": [
+            "https://stream-icy.bauermedia.pt/m80.mp3",
             "https://stream-icy.bauermedia.pt/m80.aac",
             "https://stream-hls.bauermedia.pt/m80.aac/playlist.m3u8",
             "https://stream-icy.bauermedia.pt/m8080.aac",
@@ -135,9 +140,9 @@ STATIONS: Dict[str, Dict[str, Any]] = {
         "site": "https://cidade.fm/",
         "search_terms": ["Cidade FM Portugal", "Radio Cidade FM Portugal", "Cidade FM Lisboa"],
         "streams": [
+            "https://stream-icy.bauermedia.pt/cidade.mp3",
             "https://stream-icy.bauermedia.pt/cidade.aac",
             "https://stream-hls.bauermedia.pt/cidade.aac/playlist.m3u8",
-            "https://stream-icy.bauermedia.pt/cidade.mp3",
             "https://mcrscast.mcr.iol.pt/cidadefm.mp3",
             "http://mcrscast.mcr.iol.pt/cidadefm.mp3",
         ],
@@ -679,6 +684,346 @@ def unique_urls(urls: List[str]) -> List[str]:
     return out
 
 
+# Cache simples em memória para não chamar o Shazam vezes a mais quando o utilizador
+# carrega várias vezes seguidas no botão. Em Vercel isto pode desaparecer entre invocações.
+IDENTIFY_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _safe_seconds(value: Any, default: int = 18) -> int:
+    try:
+        n = int(value)
+    except Exception:
+        n = default
+    return max(10, min(n, 30))
+
+
+def _guess_audio_ext(url: str, content_type: str = "") -> str:
+    lower = (url or "").lower().split("?")[0]
+    ctype = (content_type or "").lower()
+    if ".mp3" in lower or "mpeg" in ctype or "mp3" in ctype:
+        return ".mp3"
+    if ".m4a" in lower or "mp4" in ctype:
+        return ".m4a"
+    if ".aac" in lower or "aac" in ctype:
+        return ".aac"
+    if ".ts" in lower or "video/mp2t" in ctype:
+        return ".ts"
+    return ".aac"
+
+
+def _tmp_audio_file(ext: str) -> str:
+    fd, path = tempfile.mkstemp(prefix="radio_supremo_shazam_", suffix=ext, dir="/tmp")
+    os.close(fd)
+    return path
+
+
+def _is_hls_url(url: str) -> bool:
+    return ".m3u8" in (url or "").lower() or "mpegurl" in (url or "").lower()
+
+
+def _read_hls_playlist(url: str) -> Tuple[str, str]:
+    res = requests.get(
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/vnd.apple.mpegurl,*/*"},
+        timeout=(5, 9),
+        allow_redirects=True,
+    )
+    res.raise_for_status()
+    return res.text, res.url
+
+
+def _hls_media_playlist(url: str, depth: int = 0) -> Tuple[str, str]:
+    text, final_url = _read_hls_playlist(url)
+    if depth > 3:
+        return text, final_url
+
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for i, line in enumerate(lines):
+        if line.startswith("#EXT-X-STREAM-INF"):
+            for nxt in lines[i + 1:]:
+                if nxt and not nxt.startswith("#"):
+                    return _hls_media_playlist(urljoin(final_url, nxt), depth + 1)
+    return text, final_url
+
+
+def _record_hls_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tuple[str, int, str]:
+    text, base_url = _hls_media_playlist(url)
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    segments: List[Tuple[str, float]] = []
+    last_duration = 4.0
+
+    for line in lines:
+        if line.startswith("#EXTINF"):
+            m = re.search(r"#EXTINF:([0-9.]+)", line)
+            if m:
+                try:
+                    last_duration = float(m.group(1))
+                except Exception:
+                    last_duration = 4.0
+            continue
+        if line.startswith("#"):
+            continue
+        segments.append((urljoin(base_url, line), last_duration))
+
+    if not segments:
+        raise RuntimeError("playlist HLS sem segmentos de áudio")
+
+    # Em live HLS os últimos segmentos são normalmente os mais recentes.
+    selected = segments[-8:]
+    path = _tmp_audio_file(_guess_audio_ext(selected[-1][0], "video/mp2t"))
+    total = 0
+    total_duration = 0.0
+
+    with open(path, "wb") as out:
+        for seg_url, duration in selected:
+            res = requests.get(
+                seg_url,
+                headers={"User-Agent": USER_AGENT, "Accept": "audio/*,video/*,*/*"},
+                timeout=(5, 12),
+                stream=True,
+                allow_redirects=True,
+            )
+            try:
+                if res.status_code >= 400:
+                    continue
+                for chunk in res.iter_content(chunk_size=64 * 1024):
+                    if not chunk:
+                        continue
+                    out.write(chunk)
+                    total += len(chunk)
+                    if total >= max_bytes:
+                        break
+                total_duration += duration
+            finally:
+                res.close()
+            if total >= max_bytes or total_duration >= seconds:
+                break
+
+    if total < 35_000:
+        raise RuntimeError(f"amostra HLS demasiado pequena: {total} bytes")
+    return path, total, "hls"
+
+
+def _record_direct_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tuple[str, int, str]:
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "audio/aac,audio/mpeg,audio/*,*/*",
+        "Icy-MetaData": "0",
+        "Connection": "close",
+    }
+    res = requests.get(url, headers=headers, timeout=(5, seconds + 12), stream=True, allow_redirects=True)
+    try:
+        if res.status_code >= 400:
+            raise RuntimeError(f"HTTP {res.status_code}")
+        content_type = res.headers.get("Content-Type", "")
+        if "text/html" in content_type.lower():
+            raise RuntimeError("o stream devolveu HTML em vez de áudio")
+
+        path = _tmp_audio_file(_guess_audio_ext(res.url or url, content_type))
+        total = 0
+        start = time.monotonic()
+        with open(path, "wb") as out:
+            for chunk in res.iter_content(chunk_size=64 * 1024):
+                if not chunk:
+                    continue
+                out.write(chunk)
+                total += len(chunk)
+                if total >= max_bytes or (time.monotonic() - start) >= seconds:
+                    break
+    finally:
+        res.close()
+
+    if total < 35_000:
+        raise RuntimeError(f"amostra direta demasiado pequena: {total} bytes")
+    return path, total, "direct"
+
+
+def _station_identification_candidates(station: Dict[str, Any]) -> List[str]:
+    # Primeiro os diretos configurados. Depois tentamos resolver via Radio Browser.
+    candidates = unique_urls(station.get("streams", []))
+    for term in station.get("search_terms", [])[:2]:
+        try:
+            candidates.extend(radio_browser_search(term)[:4])
+        except Exception:
+            pass
+    return unique_urls(candidates)
+
+
+def record_station_sample(station: Dict[str, Any], seconds: int = 18) -> Dict[str, Any]:
+    errors: List[Dict[str, str]] = []
+    candidates = _station_identification_candidates(station)
+    if not candidates:
+        raise RuntimeError("esta estação não tem streams configurados")
+
+    # Para identificar, preferimos MP3 direto, depois AAC direto. HLS fica como recurso final.
+    def _candidate_score(u: str) -> int:
+        lu = u.lower()
+        if _is_hls_url(u):
+            return 50
+        if ".mp3" in lu or "_sc" in lu:
+            return 0
+        if ".aac" in lu:
+            return 10
+        return 20
+
+    ordered = sorted(candidates, key=_candidate_score)
+
+    for url in ordered:
+        try:
+            if _is_hls_url(url):
+                path, size, mode = _record_hls_sample(url, seconds)
+            else:
+                path, size, mode = _record_direct_sample(url, seconds)
+            return {"ok": True, "path": path, "bytes": size, "source_url": url, "mode": mode}
+        except Exception as exc:
+            errors.append({"url": url, "error": str(exc)[:180]})
+            continue
+
+    raise RuntimeError("não consegui gravar amostra de nenhum stream", errors)
+
+
+def _run_async(coro):
+    try:
+        return asyncio.run(coro)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+
+
+def _extract_shazam_track(out: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    track = (out or {}).get("track") or {}
+    if not track:
+        return None
+
+    images = track.get("images") or {}
+    sections = track.get("sections") or []
+    album = None
+    label = None
+    released = None
+    genres: List[str] = []
+
+    for section in sections:
+        for meta in section.get("metadata", []) or []:
+            title = str(meta.get("title", "")).strip().lower()
+            text = meta.get("text")
+            if title == "album" and text:
+                album = text
+            elif title in {"label", "gravadora"} and text:
+                label = text
+            elif title in {"released", "lançamento", "release date"} and text:
+                released = text
+        if section.get("type") == "SONG" and section.get("tabname"):
+            pass
+
+    for genre in track.get("genres", {}).values() if isinstance(track.get("genres"), dict) else []:
+        if genre and genre not in genres:
+            genres.append(genre)
+
+    return {
+        "title": track.get("title"),
+        "artist": track.get("subtitle"),
+        "album": album,
+        "label": label,
+        "released": released,
+        "genres": genres,
+        "shazam_key": track.get("key"),
+        "shazam_url": track.get("url"),
+        "cover": images.get("coverarthq") or images.get("coverart") or images.get("background"),
+        "raw_subject": track.get("share", {}).get("subject") if isinstance(track.get("share"), dict) else None,
+    }
+
+
+def identify_with_shazam(sample_path: str) -> Dict[str, Any]:
+    try:
+        from shazamio import Shazam
+    except Exception as exc:
+        return {
+            "ok": False,
+            "error": "ShazamIO não está instalado. Confirma se o requirements.txt foi publicado no Vercel.",
+            "technical": str(exc),
+        }
+
+    async def _recognize():
+        shazam = Shazam()
+        return await shazam.recognize(sample_path)
+
+    try:
+        out = _run_async(_recognize())
+    except Exception as exc:
+        return {"ok": False, "error": "O Shazam não conseguiu analisar a amostra.", "technical": str(exc)}
+
+    track = _extract_shazam_track(out)
+    if not track or not track.get("title"):
+        return {"ok": False, "error": "O Shazam não reconheceu música nesta amostra.", "raw_keys": list((out or {}).keys())}
+
+    return {"ok": True, "track": track}
+
+
+def _cache_key(station_id: str, seconds: int) -> str:
+    bucket = int(time.time() // 75)
+    return f"{station_id}:{seconds}:{bucket}"
+
+
+def identify_station(station_id: str, seconds: int = 18, force: bool = False) -> Dict[str, Any]:
+    station = STATIONS.get(station_id)
+    if not station:
+        return {"ok": False, "error": "Estação desconhecida."}
+
+    key = _cache_key(station_id, seconds)
+    if not force and key in IDENTIFY_CACHE:
+        cached = dict(IDENTIFY_CACHE[key])
+        cached["cached"] = True
+        return cached
+
+    sample_path = None
+    try:
+        sample = record_station_sample(station, seconds=seconds)
+        sample_path = sample.get("path")
+        result = identify_with_shazam(sample_path)
+        payload = {
+            "ok": bool(result.get("ok")),
+            "station_id": station_id,
+            "station": public_station(station),
+            "recorded_bytes": sample.get("bytes"),
+            "sample_mode": sample.get("mode"),
+            "source_url": sample.get("source_url"),
+            "seconds": seconds,
+            "time_lisbon": now_lisbon().isoformat(),
+        }
+        if result.get("ok"):
+            payload["track"] = result.get("track")
+        else:
+            payload["error"] = result.get("error")
+            payload["technical"] = result.get("technical")
+            payload["raw_keys"] = result.get("raw_keys")
+        IDENTIFY_CACHE[key] = payload
+        return payload
+    except Exception as exc:
+        details = None
+        if len(getattr(exc, "args", [])) > 1:
+            details = exc.args[1]
+        return {
+            "ok": False,
+            "station_id": station_id,
+            "station": public_station(station),
+            "error": str(exc.args[0] if getattr(exc, "args", None) else exc),
+            "details": details,
+            "seconds": seconds,
+            "time_lisbon": now_lisbon().isoformat(),
+        }
+    finally:
+        if sample_path:
+            try:
+                os.remove(sample_path)
+            except Exception:
+                pass
+
+
 @app.get("/")
 def home():
     return render_template("index.html")
@@ -760,6 +1105,39 @@ def station(station_id: str):
     if not st:
         return jsonify({"ok": False, "error": "Estação desconhecida."}), 404
     return jsonify({"ok": True, "station": public_station(st)})
+
+
+@app.get("/api/identify/<station_id>")
+def api_identify_station(station_id: str):
+    """Grava uma pequena amostra do stream e envia para reconhecimento ShazamIO."""
+    seconds = _safe_seconds(request.args.get("seconds"), 18)
+    force = request.args.get("force") == "1"
+    data = identify_station(station_id, seconds=seconds, force=force)
+    status = 200 if data.get("ok") else 200
+    return jsonify(data), status
+
+
+@app.get("/api/identify")
+def api_identify_current():
+    station_id = request.args.get("station_id", "").strip()
+    if not station_id:
+        active = get_active_programs(now_lisbon())
+        station_id = active[0]["station_id"] if active else "rfm"
+    seconds = _safe_seconds(request.args.get("seconds"), 18)
+    force = request.args.get("force") == "1"
+    data = identify_station(station_id, seconds=seconds, force=force)
+    status = 200 if data.get("ok") else 200
+    return jsonify(data), status
+
+
+@app.get("/api/test-shazam")
+def test_shazam():
+    try:
+        import shazamio  # type: ignore
+        version = getattr(shazamio, "__version__", "instalado")
+        return jsonify({"ok": True, "shazamio": version})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc), "hint": "Confirma shazamio==0.8.1 no requirements.txt"})
 
 
 @app.get("/api/test-streams")

@@ -1,36 +1,65 @@
-# Rádio Supremo 24/7 — CSS Corrigido para Vercel
+# Rádio Supremo 24/7 — Shazam Supremo
 
-Esta versão corrige o problema em que o Vercel carregava a página mas não lia o CSS/JS.
+Versão preparada para Vercel com:
 
-## Correção aplicada
+- Rádio 24/7 automática.
+- Troca automática de stream conforme a grelha.
+- Player fixo no rodapé.
+- CSS servido pelo Flask para evitar problemas no Vercel.
+- Identificação de músicas com ShazamIO.
+- Botão manual **Identificar**.
+- Botão **Forçar nova identificação**.
+- Identificação automática a cada 2 minutos quando a rádio está a tocar.
 
-- `static` e `templates` foram também colocados dentro de `/api`, para entrarem no bundle da função Python do Vercel.
-- O Flask serve `/static/style.css` e `/static/script.js` diretamente com `send_from_directory`.
-- O `vercel.json` já não tenta servir `/static` por uma rota separada.
-- Cache atualizado para `?v=6`.
-
-## Testes depois do deploy
-
-Abre estes links:
+## Ficheiros
 
 ```txt
-https://TEU-SITE.vercel.app/api/health
-https://TEU-SITE.vercel.app/api/static-check
-https://TEU-SITE.vercel.app/static/style.css?v=6
-https://TEU-SITE.vercel.app/static/script.js?v=6
+api/index.py
+api/templates/index.html
+api/static/style.css
+api/static/script.js
+templates/index.html
+static/style.css
+static/script.js
+requirements.txt
+vercel.json
 ```
 
-Se `/static/style.css?v=6` abrir texto CSS, o estilo está a ser servido.
-
-## Correr no PC
+## Como correr no PC
 
 ```bash
 pip install -r requirements.txt
 python api/index.py
 ```
 
-Depois abre:
+Abre:
 
 ```txt
 http://127.0.0.1:5000
 ```
+
+## Como publicar no Vercel
+
+1. Envia os ficheiros para o GitHub.
+2. Importa o repositório no Vercel.
+3. Framework: Other.
+4. Deploy.
+
+## Testes úteis depois de publicar
+
+```txt
+/api/health
+/api/static-check
+/static/style.css?v=7-shazam
+/static/script.js?v=7-shazam
+/api/test-shazam
+/api/identify/m80?seconds=18&force=1
+/api/identify/rfm?seconds=18&force=1
+/api/test-streams
+```
+
+## Notas importantes
+
+A identificação não retransmite rádio. A app grava uma pequena amostra temporária do stream em `/tmp`, envia para reconhecimento pelo ShazamIO e apaga a amostra no fim.
+
+Em algumas rádios, se estiver a dar conversa, publicidade, notícias ou uma intro sem música, o Shazam pode não reconhecer. Nesses casos, tenta novamente quando a música estiver no refrão.

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7-shazam">
 </head>
 <body>
   <div class="aurora aurora-a"></div>
@@ -66,6 +66,29 @@
           <div><b>Horário</b><span id="currentTime">—</span></div>
           <div><b>Apresenta</b><span id="currentHosts">—</span></div>
           <div><b>Tipo</b><span id="currentCategory">—</span></div>
+        </div>
+      </article>
+
+
+      <article class="glass shazamCard">
+        <div class="sectionTitle">
+          <span>Shazam ao vivo</span>
+          <button id="identifyBtn" class="miniBtn">🔎 Identificar</button>
+        </div>
+        <div class="shazamResult" id="shazamResult">
+          <div class="shazamCover" id="shazamCover">♪</div>
+          <div class="shazamText">
+            <h3 id="shazamTitle">Ainda sem música identificada</h3>
+            <p id="shazamArtist">Carrega em “Identificar” enquanto a rádio está a tocar.</p>
+            <small id="shazamMeta">A app grava uma amostra curta do stream no servidor e envia para o Shazam.</small>
+          </div>
+        </div>
+        <div class="shazamActions">
+          <button id="identifyForceBtn" class="btn ghost smallBtn">⚡ Forçar nova identificação</button>
+          <label class="miniSwitch">
+            <input type="checkbox" id="autoShazam" checked>
+            <span>auto a cada 2 min</span>
+          </label>
         </div>
       </article>
 
@@ -137,6 +160,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=7-shazam"></script>
 </body>
 </html>

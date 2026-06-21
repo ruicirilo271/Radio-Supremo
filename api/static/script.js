@@ -1,4 +1,4 @@
-/* Rádio Supremo 24/7 — versão botão/som corrigidos */
+/* Rádio Supremo 24/7 — versão Shazam Supremo */
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -15,6 +15,8 @@ const state = {
   lastSwitchKey: "",
   switching: false,
   lastAudioErrorRetryAt: 0,
+  identifying: false,
+  lastIdentifiedKey: "",
 };
 
 const els = {
@@ -47,6 +49,14 @@ const els = {
   toast: $("#toast"),
   meters: $("#meters"),
   dockSpectrum: $("#dockSpectrum"),
+  identifyBtn: $("#identifyBtn"),
+  identifyForceBtn: $("#identifyForceBtn"),
+  autoShazam: $("#autoShazam"),
+  shazamResult: $("#shazamResult"),
+  shazamCover: $("#shazamCover"),
+  shazamTitle: $("#shazamTitle"),
+  shazamArtist: $("#shazamArtist"),
+  shazamMeta: $("#shazamMeta"),
 };
 
 function pad(n) { return String(n).padStart(2, "0"); }
@@ -83,6 +93,7 @@ function saveSettings() {
   storageSet("radioSupremo.favoritesOnly", els.favoritesOnly.checked ? "1" : "0");
   storageSet("radioSupremo.newsBoost", els.newsBoost.checked ? "1" : "0");
   storageSet("radioSupremo.volume", String(els.volume.value));
+  storageSet("radioSupremo.autoShazam", els.autoShazam && els.autoShazam.checked ? "1" : "0");
 }
 
 function loadSettings() {
@@ -97,6 +108,7 @@ function loadSettings() {
   els.newsBoost.checked = storageGet("radioSupremo.newsBoost", "1") !== "0";
   els.volume.value = storageGet("radioSupremo.volume", "0.82");
   els.audio.volume = Number(els.volume.value);
+  if (els.autoShazam) els.autoShazam.checked = storageGet("radioSupremo.autoShazam", "1") !== "0";
   els.dockAuto.classList.toggle("active", els.autoSwitch.checked);
 }
 
@@ -460,6 +472,90 @@ async function loadAudioUrl(url) {
   // Web Audio API + streams externos sem CORS pode silenciar o áudio.
 }
 
+function currentStationForIdentify() {
+  return state.currentStationId || state.desiredStationId || state.currentProgram?.station_id || getRecommendedProgram()?.station_id || state.stations[0]?.id;
+}
+
+function renderShazamLoading(station) {
+  if (!els.shazamTitle) return;
+  els.shazamTitle.textContent = "A ouvir amostra...";
+  els.shazamArtist.textContent = station ? `Shazam a analisar ${station.name}` : "Shazam a analisar a emissão";
+  els.shazamMeta.textContent = "Aguarda uns segundos. Isto não mexe no player.";
+  els.shazamResult?.classList.add("loading");
+}
+
+function renderShazamResult(data) {
+  if (!els.shazamTitle) return;
+  els.shazamResult?.classList.remove("loading");
+
+  if (!data || !data.ok || !data.track) {
+    els.shazamCover.style.backgroundImage = "";
+    els.shazamCover.textContent = "?";
+    els.shazamTitle.textContent = "Não consegui identificar";
+    els.shazamArtist.textContent = data?.error || "O Shazam não encontrou música nesta amostra.";
+    els.shazamMeta.textContent = data?.details ? "Experimenta novamente quando a música estiver no refrão." : "Tenta de novo daqui a alguns segundos.";
+    toast("Shazam não reconheceu esta amostra.", "bad");
+    return;
+  }
+
+  const track = data.track;
+  const key = `${track.title || ""}::${track.artist || ""}`;
+  state.lastIdentifiedKey = key;
+
+  els.shazamTitle.textContent = track.title || "Música identificada";
+  els.shazamArtist.textContent = track.artist || "Artista desconhecido";
+  const meta = [track.album ? `Álbum: ${track.album}` : null, data.station?.name || data.station?.brand || null, data.recorded_bytes ? `${Math.round(data.recorded_bytes / 1024)} KB` : null].filter(Boolean);
+  els.shazamMeta.textContent = meta.join(" · ") || "Identificado pelo Shazam";
+
+  if (track.cover) {
+    els.shazamCover.textContent = "";
+    els.shazamCover.style.backgroundImage = `url('${track.cover}')`;
+  } else {
+    els.shazamCover.style.backgroundImage = "";
+    els.shazamCover.textContent = "♪";
+  }
+
+  if (track.shazam_url) {
+    els.shazamMeta.innerHTML = `${els.shazamMeta.textContent} · <a href="${track.shazam_url}" target="_blank" rel="noopener">abrir no Shazam</a>`;
+  }
+
+  els.dockSub.textContent = `${track.artist || ""} — ${track.title || "música identificada"}`;
+  toast(`Identificada: ${track.artist || ""} — ${track.title || "música"}`, "ok");
+}
+
+async function identifyCurrent(force = false) {
+  if (state.identifying) return;
+  const stationId = currentStationForIdentify();
+  if (!stationId) {
+    toast("Escolhe primeiro uma rádio para eu identificar.", "bad");
+    return;
+  }
+
+  const station = stationById(stationId);
+  state.identifying = true;
+  renderShazamLoading(station);
+  [els.identifyBtn, els.identifyForceBtn].forEach(btn => { if (btn) btn.disabled = true; });
+
+  try {
+    const res = await fetch(`/api/identify/${encodeURIComponent(stationId)}?seconds=18&force=${force ? 1 : 0}&t=${Date.now()}`);
+    const data = await res.json();
+    renderShazamResult(data);
+  } catch (err) {
+    console.error(err);
+    renderShazamResult({ ok: false, error: "Erro ao chamar o Shazam no servidor." });
+  } finally {
+    state.identifying = false;
+    [els.identifyBtn, els.identifyForceBtn].forEach(btn => { if (btn) btn.disabled = false; });
+  }
+}
+
+function autoShazamTick() {
+  if (!els.autoShazam || !els.autoShazam.checked) return;
+  if (!state.userStarted || els.audio.paused || state.identifying) return;
+  identifyCurrent(false);
+}
+
+
 async function playRecommended(force = false) {
   updateNowUI();
   let rec = state.currentProgram || getRecommendedProgram();
@@ -517,6 +613,16 @@ function bindEvents() {
     state.userStarted = true;
     await playRecommended(false);
   });
+  if (els.identifyBtn) {
+    els.identifyBtn.addEventListener("click", () => identifyCurrent(false));
+  }
+  if (els.identifyForceBtn) {
+    els.identifyForceBtn.addEventListener("click", () => identifyCurrent(true));
+  }
+  if (els.autoShazam) {
+    els.autoShazam.addEventListener("change", saveSettings);
+  }
+
   els.stopBtn.addEventListener("click", () => {
     els.audio.pause();
     els.dockPlay.textContent = "▶";
@@ -596,6 +702,7 @@ async function boot() {
     renderUpNext();
     schedulerTick(false);
     setInterval(() => schedulerTick(false), 15000);
+    setInterval(autoShazamTick, 120000);
     setInterval(updateClock, 1000);
     toast("Rádio pronta. Carrega em Ativar rádio 24/7.", "ok");
   } catch (err) {
