@@ -15,17 +15,49 @@ from zoneinfo import ZoneInfo
 import os
 import time
 import requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory, make_response
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+API_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(API_DIR)
+BASE_DIR = ROOT_DIR
+
+# No Vercel, os ficheiros dentro de /api entram sempre no bundle da função.
+# Por isso usamos /api/templates e /api/static como fonte principal.
 app = Flask(
     __name__,
-    template_folder=os.path.join(BASE_DIR, "templates"),
-    static_folder=os.path.join(BASE_DIR, "static"),
+    template_folder=os.path.join(API_DIR, "templates"),
+    static_folder=None,
 )
 
 TZ = ZoneInfo("Europe/Lisbon")
 USER_AGENT = "Mozilla/5.0 RadioSupremo24-7/2.0 (+https://vercel.app)"
+
+
+def _static_dir() -> str:
+    primary = os.path.join(API_DIR, "static")
+    fallback = os.path.join(ROOT_DIR, "static")
+    return primary if os.path.isdir(primary) else fallback
+
+
+@app.get("/static/<path:filename>", endpoint="static")
+def static_files(filename: str):
+    # Servir CSS/JS pela própria app evita que o Vercel ignore a pasta /static.
+    resp = make_response(send_from_directory(_static_dir(), filename))
+    resp.headers["Cache-Control"] = "public, max-age=60"
+    return resp
+
+
+@app.get("/api/static-check")
+def static_check():
+    static_dir = _static_dir()
+    files = sorted(os.listdir(static_dir)) if os.path.isdir(static_dir) else []
+    return jsonify({
+        "ok": True,
+        "static_dir": static_dir,
+        "files": files,
+        "style_exists": os.path.exists(os.path.join(static_dir, "style.css")),
+        "script_exists": os.path.exists(os.path.join(static_dir, "script.js")),
+    })
 
 # Streams diretos conhecidos + fallback dinâmico via Radio Browser.
 # Alguns URLs podem mudar com o tempo; por isso há vários candidatos e /api/stream tenta resolver.
