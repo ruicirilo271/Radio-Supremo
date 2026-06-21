@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070713" />
+  <title>Rádio Supremo 24/7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5">
+</head>
+<body>
+  <div class="aurora aurora-a"></div>
+  <div class="aurora aurora-b"></div>
+  <div class="noise"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">RS</div>
+      <div>
+        <strong>Rádio Supremo 24/7</strong>
+        <span>música · notícias · humor · entrevistas</span>
+      </div>
+    </div>
+    <div class="clockbox">
+      <span id="clock">--:--</span>
+      <small>Europe/Lisbon</small>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero glass">
+      <div class="heroText">
+        <p class="eyebrow">Modo Super Deus Supremo</p>
+        <h1>Uma rádio automática que salta para os melhores programas portugueses.</h1>
+        <p>
+          Liga uma vez e deixa tocar. Quando começa um programa favorito, a app muda sozinha de stream.
+          Nos intervalos, mantém música, notícias e entrevistas 24 horas por dia.
+        </p>
+        <div class="heroActions">
+          <button id="startAuto" class="btn primary">▶ Ativar rádio 24/7</button>
+          <button id="stopBtn" class="btn">⏸ Pausar</button>
+          <button id="nextBest" class="btn ghost">⚡ Ir para recomendado</button>
+        </div>
+      </div>
+      <div class="heroCard">
+        <span class="livePill"><b></b> AO VIVO</span>
+        <h2 id="nowProgram">A carregar grelha...</h2>
+        <p id="nowStation">—</p>
+        <div class="meters" id="meters"></div>
+        <div class="signalLine"><span></span></div>
+      </div>
+    </section>
+
+    <section class="statusGrid">
+      <article class="glass nowCard">
+        <div class="sectionTitle">
+          <span>Agora</span>
+          <button id="favCurrent" class="miniBtn">☆ favorito</button>
+        </div>
+        <h3 id="currentTitle">—</h3>
+        <p id="currentDesc">—</p>
+        <div class="metaRows">
+          <div><b>Estação</b><span id="currentStation">—</span></div>
+          <div><b>Horário</b><span id="currentTime">—</span></div>
+          <div><b>Apresenta</b><span id="currentHosts">—</span></div>
+          <div><b>Tipo</b><span id="currentCategory">—</span></div>
+        </div>
+      </article>
+
+      <article class="glass controlCard">
+        <div class="sectionTitle"><span>Controlo Supremo</span></div>
+        <label class="switchRow">
+          <input type="checkbox" id="autoSwitch" checked>
+          <span>Mudar automaticamente quando a grelha muda</span>
+        </label>
+        <label class="switchRow">
+          <input type="checkbox" id="favoritesOnly">
+          <span>Modo só favoritos quando houver programa favorito no ar</span>
+        </label>
+        <label class="switchRow">
+          <input type="checkbox" id="newsBoost" checked>
+          <span>Dar prioridade a blocos de notícias fortes</span>
+        </label>
+        <div class="volumeBox">
+          <span>Volume</span>
+          <input id="volume" type="range" min="0" max="1" value="0.82" step="0.01">
+        </div>
+        <p class="hint">Nota: o browser exige que carregues uma vez em “Ativar rádio 24/7”. Depois a troca automática funciona.</p>
+      </article>
+    </section>
+
+    <section class="grid2">
+      <article class="glass">
+        <div class="sectionTitle">
+          <span>Estações</span>
+          <small>clique para ouvir</small>
+        </div>
+        <div id="stations" class="stationGrid"></div>
+      </article>
+
+      <article class="glass">
+        <div class="sectionTitle">
+          <span>Próximos saltos</span>
+          <small>agenda automática</small>
+        </div>
+        <div id="upNext" class="upNext"></div>
+      </article>
+    </section>
+
+    <section class="glass scheduleWrap">
+      <div class="sectionTitle">
+        <span>Grelha 24/7 curada</span>
+        <small>marca/desmarca os programas que gostas</small>
+      </div>
+      <div id="schedule" class="schedule"></div>
+    </section>
+  </main>
+
+  <footer class="playerDock">
+    <div class="dockInfo">
+      <div class="coverOrb" id="coverOrb">♪</div>
+      <div>
+        <strong id="dockTitle">Rádio Supremo</strong>
+        <span id="dockSub">Pronto para tocar</span>
+      </div>
+    </div>
+    <div class="dockButtons">
+      <button id="dockPlay" class="roundBtn">▶</button>
+      <button id="dockAuto" class="roundBtn active">A</button>
+    </div>
+    <div class="dockSpectrum" id="dockSpectrum"></div>
+    <audio id="audio" preload="none"></audio>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=5"></script>
+</body>
+</html>
