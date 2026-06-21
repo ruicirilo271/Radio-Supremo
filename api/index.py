@@ -694,7 +694,7 @@ def _safe_seconds(value: Any, default: int = 18) -> int:
         n = int(value)
     except Exception:
         n = default
-    return max(10, min(n, 30))
+    return max(8, min(n, 60))
 
 
 def _guess_audio_ext(url: str, content_type: str = "") -> str:
@@ -746,7 +746,7 @@ def _hls_media_playlist(url: str, depth: int = 0) -> Tuple[str, str]:
     return text, final_url
 
 
-def _record_hls_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tuple[str, int, str]:
+def _record_hls_sample(url: str, seconds: int, max_bytes: int = 4_800_000) -> Tuple[str, int, str]:
     text, base_url = _hls_media_playlist(url)
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     segments: List[Tuple[str, float]] = []
@@ -769,7 +769,8 @@ def _record_hls_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tu
         raise RuntimeError("playlist HLS sem segmentos de áudio")
 
     # Em live HLS os últimos segmentos são normalmente os mais recentes.
-    selected = segments[-8:]
+    selected_count = max(8, min(len(segments), int(seconds / max(last_duration, 1.0)) + 4))
+    selected = segments[-selected_count:]
     path = _tmp_audio_file(_guess_audio_ext(selected[-1][0], "video/mp2t"))
     total = 0
     total_duration = 0.0
@@ -804,14 +805,14 @@ def _record_hls_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tu
     return path, total, "hls"
 
 
-def _record_direct_sample(url: str, seconds: int, max_bytes: int = 2_200_000) -> Tuple[str, int, str]:
+def _record_direct_sample(url: str, seconds: int, max_bytes: int = 4_800_000) -> Tuple[str, int, str]:
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": "audio/aac,audio/mpeg,audio/*,*/*",
         "Icy-MetaData": "0",
         "Connection": "close",
     }
-    res = requests.get(url, headers=headers, timeout=(5, seconds + 12), stream=True, allow_redirects=True)
+    res = requests.get(url, headers=headers, timeout=(5, min(seconds + 12, 58)), stream=True, allow_redirects=True)
     try:
         if res.status_code >= 400:
             raise RuntimeError(f"HTTP {res.status_code}")

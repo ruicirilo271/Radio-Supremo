@@ -476,11 +476,14 @@ function currentStationForIdentify() {
   return state.currentStationId || state.desiredStationId || state.currentProgram?.station_id || getRecommendedProgram()?.station_id || state.stations[0]?.id;
 }
 
-function renderShazamLoading(station) {
+const SHAZAM_FULL_STEPS = [12, 18, 25, 35, 50];
+const SHAZAM_AUTO_STEPS = [12, 18, 25];
+
+function renderShazamLoading(station, seconds = 18, attempt = 1, total = 1) {
   if (!els.shazamTitle) return;
-  els.shazamTitle.textContent = "A ouvir amostra...";
+  els.shazamTitle.textContent = `A ouvir amostra de ${seconds}s...`;
   els.shazamArtist.textContent = station ? `Shazam a analisar ${station.name}` : "Shazam a analisar a emissão";
-  els.shazamMeta.textContent = "Aguarda uns segundos. Isto não mexe no player.";
+  els.shazamMeta.textContent = `Tentativa ${attempt}/${total}. Se não reconhecer, a app aumenta a amostra automaticamente.`;
   els.shazamResult?.classList.add("loading");
 }
 
@@ -523,7 +526,7 @@ function renderShazamResult(data) {
   toast(`Identificada: ${track.artist || ""} — ${track.title || "música"}`, "ok");
 }
 
-async function identifyCurrent(force = false) {
+async function identifyCurrent(force = false, autoMode = false) {
   if (state.identifying) return;
   const stationId = currentStationForIdentify();
   if (!stationId) {
@@ -532,14 +535,48 @@ async function identifyCurrent(force = false) {
   }
 
   const station = stationById(stationId);
+  const steps = autoMode ? SHAZAM_AUTO_STEPS : SHAZAM_FULL_STEPS;
   state.identifying = true;
-  renderShazamLoading(station);
   [els.identifyBtn, els.identifyForceBtn].forEach(btn => { if (btn) btn.disabled = true; });
 
+  let lastData = null;
+  let tried = [];
+
   try {
-    const res = await fetch(`/api/identify/${encodeURIComponent(stationId)}?seconds=18&force=${force ? 1 : 0}&t=${Date.now()}`);
-    const data = await res.json();
-    renderShazamResult(data);
+    for (let i = 0; i < steps.length; i++) {
+      const seconds = steps[i];
+      tried.push(seconds);
+      renderShazamLoading(station, seconds, i + 1, steps.length);
+
+      const res = await fetch(`/api/identify/${encodeURIComponent(stationId)}?seconds=${seconds}&force=${force ? 1 : 0}&t=${Date.now()}`);
+      const data = await res.json();
+      data.tried_seconds = [...tried];
+      lastData = data;
+
+      if (data.ok && data.track) {
+        renderShazamResult(data);
+        return;
+      }
+
+      if (els.shazamTitle) {
+        els.shazamTitle.textContent = `Ainda não reconheceu em ${seconds}s`;
+        els.shazamArtist.textContent = data?.error || "O Shazam não encontrou música nesta amostra.";
+        const next = steps[i + 1];
+        els.shazamMeta.textContent = next ? `Vou tentar uma amostra maior: ${next}s.` : `Tentei: ${tried.join("s, ")}s.`;
+      }
+
+      // Pequena pausa visual entre tentativas. Não mexe no áudio que está a tocar.
+      if (i < steps.length - 1) await new Promise(resolve => setTimeout(resolve, 650));
+    }
+
+    renderShazamResult({
+      ...(lastData || {}),
+      ok: false,
+      error: autoMode
+        ? `Não identifiquei nas amostras automáticas (${tried.join("s, ")}s). Usa “Forçar” para tentar até 50s.`
+        : `Tentei amostras cada vez maiores (${tried.join("s, ")}s) e ainda não reconheceu. Pode estar a dar publicidade, conversa, notícia ou uma música pouco conhecida.`,
+      tried_seconds: tried,
+    });
   } catch (err) {
     console.error(err);
     renderShazamResult({ ok: false, error: "Erro ao chamar o Shazam no servidor." });
@@ -552,7 +589,7 @@ async function identifyCurrent(force = false) {
 function autoShazamTick() {
   if (!els.autoShazam || !els.autoShazam.checked) return;
   if (!state.userStarted || els.audio.paused || state.identifying) return;
-  identifyCurrent(false);
+  identifyCurrent(false, true);
 }
 
 
