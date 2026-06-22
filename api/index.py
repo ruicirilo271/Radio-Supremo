@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urljoin
 
 import asyncio
+import json
 import os
 import re
 import tempfile
@@ -490,6 +491,32 @@ DEFAULT_FAVORITES = [
     "tsf_forum",
     "comercial_tnt",
 ]
+
+
+def load_programacao_file() -> None:
+    """Carrega a grelha editável a partir de api/programacao.json, se existir.
+
+    Isto permite editar a programação no GitHub/Vercel sem mexer no código Python.
+    No browser também há import/export por ficheiro JSON, guardado em localStorage.
+    """
+    global PROGRAMS, DEFAULT_FAVORITES
+    path = os.path.join(API_DIR, "programacao.json")
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        programs = data.get("programs")
+        favorites = data.get("default_favorites")
+        if isinstance(programs, list) and programs:
+            PROGRAMS = programs
+        if isinstance(favorites, list):
+            DEFAULT_FAVORITES = favorites
+    except Exception as exc:
+        print(f"[programacao.json] Não foi possível carregar: {exc}")
+
+
+load_programacao_file()
 
 
 def now_lisbon() -> datetime:
@@ -1059,6 +1086,20 @@ def config():
         }
     )
 
+
+
+
+@app.get("/api/programacao")
+def programacao_json():
+    return jsonify({
+        "ok": True,
+        "schema": "radio_supremo_programacao_v1",
+        "name": "Rádio Supremo 24/7 — Programação",
+        "timezone": "Europe/Lisbon",
+        "days_reference": "0=segunda, 1=terça, 2=quarta, 3=quinta, 4=sexta, 5=sábado, 6=domingo",
+        "default_favorites": DEFAULT_FAVORITES,
+        "programs": [enrich_program(p) for p in sorted(PROGRAMS, key=program_sort_key)],
+    })
 
 @app.get("/api/now")
 def api_now():

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8-ladder">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9-json">
 </head>
 <body>
   <div class="aurora aurora-a"></div>
@@ -42,6 +42,9 @@
           <button id="startAuto" class="btn primary">▶ Ativar rádio 24/7</button>
           <button id="stopBtn" class="btn">⏸ Pausar</button>
           <button id="nextBest" class="btn ghost">⚡ Ir para recomendado</button>
+          <button id="exportJson" class="btn ghost">⬇ Exportar JSON</button>
+          <button id="importJsonBtn" class="btn ghost">⬆ Importar JSON</button>
+          <input id="importJsonFile" type="file" accept="application/json,.json" hidden>
         </div>
       </div>
       <div class="heroCard">
@@ -110,6 +113,11 @@
           <span>Volume</span>
           <input id="volume" type="range" min="0" max="1" value="0.82" step="0.01">
         </div>
+        <div class="jsonBox">
+          <b>Programação JSON</b>
+          <span id="jsonStatus">A usar grelha padrão da app.</span>
+          <button id="resetJson" class="miniBtn" type="button">Repor grelha padrão</button>
+        </div>
         <p class="hint">Nota: o browser exige que carregues uma vez em “Ativar rádio 24/7”. Depois a troca automática funciona.</p>
       </article>
     </section>
@@ -160,6 +168,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="{{ url_for('static', filename='script.js') }}?v=8-ladder"></script>
+  <script src="{{ url_for('static', filename='script.js') }}?v=9-json"></script>
 </body>
 </html>

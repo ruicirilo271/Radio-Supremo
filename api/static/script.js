@@ -1,4 +1,4 @@
-/* Rádio Supremo 24/7 — versão Shazam Supremo */
+/* Rádio Supremo 24/7 — Shazam + Programação JSON */
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -57,6 +57,11 @@ const els = {
   shazamTitle: $("#shazamTitle"),
   shazamArtist: $("#shazamArtist"),
   shazamMeta: $("#shazamMeta"),
+  exportJson: $("#exportJson"),
+  importJsonBtn: $("#importJsonBtn"),
+  importJsonFile: $("#importJsonFile"),
+  resetJson: $("#resetJson"),
+  jsonStatus: $("#jsonStatus"),
 };
 
 function pad(n) { return String(n).padStart(2, "0"); }
@@ -110,6 +115,116 @@ function loadSettings() {
   els.audio.volume = Number(els.volume.value);
   if (els.autoShazam) els.autoShazam.checked = storageGet("radioSupremo.autoShazam", "1") !== "0";
   els.dockAuto.classList.toggle("active", els.autoSwitch.checked);
+}
+
+function normalizeProgramacaoJson(data) {
+  if (!data || typeof data !== "object") throw new Error("JSON inválido");
+  const programs = Array.isArray(data.programs) ? data.programs : Array.isArray(data) ? data : null;
+  if (!programs || !programs.length) throw new Error("O JSON não tem lista de programas");
+
+  const valid = programs.map((p, idx) => {
+    if (!p.id || !p.name || !p.station_id || !p.start || !p.end || !Array.isArray(p.days)) {
+      throw new Error(`Programa inválido na posição ${idx + 1}. Campos obrigatórios: id, name, station_id, days, start, end`);
+    }
+    return {
+      ...p,
+      days: p.days.map(Number).filter(d => d >= 0 && d <= 6),
+      priority: Number(p.priority ?? 50),
+      official: Boolean(p.official),
+    };
+  });
+
+  return {
+    schema: data.schema || "radio_supremo_programacao_v1",
+    name: data.name || "Rádio Supremo 24/7 — Programação importada",
+    timezone: data.timezone || "Europe/Lisbon",
+    default_favorites: Array.isArray(data.default_favorites) ? data.default_favorites : [],
+    programs: valid,
+  };
+}
+
+function applyProgramacaoJson(data, persist = true) {
+  const normalized = normalizeProgramacaoJson(data);
+  state.programs = normalized.programs;
+  if (normalized.default_favorites.length) {
+    state.favorites = new Set(normalized.default_favorites);
+    storageSet("radioSupremo.favorites", JSON.stringify([...state.favorites]));
+  }
+  if (persist) storageSet("radioSupremo.customProgramacao", JSON.stringify(normalized));
+  if (els.jsonStatus) els.jsonStatus.textContent = `${normalized.name} · ${normalized.programs.length} programas`;
+  renderSchedule();
+  renderUpNext();
+  schedulerTick(false);
+}
+
+function loadCustomProgramacao() {
+  const raw = storageGet("radioSupremo.customProgramacao");
+  if (!raw) {
+    if (els.jsonStatus) els.jsonStatus.textContent = `A usar grelha padrão · ${state.programs.length} programas`;
+    return false;
+  }
+  try {
+    applyProgramacaoJson(JSON.parse(raw), false);
+    toast("Programação JSON personalizada carregada", "ok");
+    return true;
+  } catch (err) {
+    console.warn(err);
+    localStorage.removeItem("radioSupremo.customProgramacao");
+    if (els.jsonStatus) els.jsonStatus.textContent = "JSON antigo inválido. Voltei à grelha padrão.";
+    return false;
+  }
+}
+
+function exportProgramacaoJson() {
+  const payload = {
+    schema: "radio_supremo_programacao_v1",
+    name: "Rádio Supremo 24/7 — Programação exportada",
+    timezone: "Europe/Lisbon",
+    days_reference: "0=segunda, 1=terça, 2=quarta, 3=quinta, 4=sexta, 5=sábado, 6=domingo",
+    exported_at: new Date().toISOString(),
+    default_favorites: [...state.favorites],
+    programs: state.programs.map(({ station, ...p }) => p),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "programacao-radio-supremo.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast("Programação exportada em JSON", "ok");
+}
+
+function importProgramacaoFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyProgramacaoJson(JSON.parse(reader.result), true);
+      toast("Programação importada com sucesso", "ok");
+    } catch (err) {
+      console.error(err);
+      toast(`Erro ao importar JSON: ${err.message}`, "bad");
+    } finally {
+      if (els.importJsonFile) els.importJsonFile.value = "";
+    }
+  };
+  reader.onerror = () => toast("Não consegui ler o ficheiro JSON", "bad");
+  reader.readAsText(file, "utf-8");
+}
+
+function resetProgramacaoJson() {
+  localStorage.removeItem("radioSupremo.customProgramacao");
+  state.programs = state.config.programs || [];
+  state.favorites = new Set(state.config.default_favorites || []);
+  storageSet("radioSupremo.favorites", JSON.stringify([...state.favorites]));
+  if (els.jsonStatus) els.jsonStatus.textContent = `A usar grelha padrão · ${state.programs.length} programas`;
+  renderSchedule();
+  renderUpNext();
+  schedulerTick(false);
+  toast("Grelha padrão reposta", "ok");
 }
 
 function isActive(program, dt = nowLisbon()) {
@@ -659,6 +774,16 @@ function bindEvents() {
   if (els.autoShazam) {
     els.autoShazam.addEventListener("change", saveSettings);
   }
+  if (els.exportJson) {
+    els.exportJson.addEventListener("click", exportProgramacaoJson);
+  }
+  if (els.importJsonBtn && els.importJsonFile) {
+    els.importJsonBtn.addEventListener("click", () => els.importJsonFile.click());
+    els.importJsonFile.addEventListener("change", () => importProgramacaoFile(els.importJsonFile.files[0]));
+  }
+  if (els.resetJson) {
+    els.resetJson.addEventListener("click", resetProgramacaoJson);
+  }
 
   els.stopBtn.addEventListener("click", () => {
     els.audio.pause();
@@ -734,6 +859,7 @@ async function boot() {
     state.stations = config.stations || [];
     state.programs = config.programs || [];
     loadSettings();
+    loadCustomProgramacao();
     renderStations();
     renderSchedule();
     renderUpNext();
