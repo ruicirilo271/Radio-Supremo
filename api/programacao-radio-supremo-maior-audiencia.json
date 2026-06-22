@@ -1,0 +1,1098 @@
+{
+  "schema": "radio_supremo_programacao_v1",
+  "name": "Rádio Supremo 24/7 — Programação por Audiência, Notícias, Música, Entrevistas e Passatempos",
+  "version": "2026-06-22-maior-audiencia",
+  "timezone": "Europe/Lisbon",
+  "days_reference": "0=segunda, 1=terça, 2=quarta, 3=quinta, 4=sexta, 5=sábado, 6=domingo",
+  "strategy": {
+    "description": "Grelha curada para mudar automaticamente para rádios/programas portugueses de maior audiência e misturar humor, notícias, música, entrevistas, debate e passatempos.",
+    "selection_rules": [
+      "Priorizar estações no topo do Bareme Rádio 2026: Comercial, RFM, M80, Renascença, Antena 1, Cidade FM, Mega Hits, TSF e Antena 3.",
+      "Na manhã, alternar blocos curtos dos programas mais fortes para apanhar humor, música e notícias sem ficar preso numa só rádio.",
+      "Usar TSF e Antena 1 para informação, debate e entrevistas.",
+      "Usar Comercial, RFM, M80, Cidade FM e Mega Hits para música, humor e passatempos.",
+      "Usar Antena 3 para entrevistas/cultura e música portuguesa/alternativa."
+    ]
+  },
+  "stations_basis": [
+    {
+      "station_id": "comercial",
+      "rank": 1,
+      "name": "Rádio Comercial",
+      "aav_percent": 21.0,
+      "role": "música, humor, passatempos e grande audiência"
+    },
+    {
+      "station_id": "rfm",
+      "rank": 2,
+      "name": "RFM",
+      "aav_percent": 16.1,
+      "role": "música pop e humor"
+    },
+    {
+      "station_id": "m80",
+      "rank": 3,
+      "name": "M80",
+      "aav_percent": 8.6,
+      "role": "clássicos e entretenimento"
+    },
+    {
+      "station_id": "renascenca",
+      "rank": 4,
+      "name": "Rádio Renascença",
+      "aav_percent": 8.3,
+      "role": "humor, informação, atualidade"
+    },
+    {
+      "station_id": "antena1",
+      "rank": 5,
+      "name": "Antena 1",
+      "aav_percent": 5.2,
+      "role": "notícias, entrevistas e serviço público"
+    },
+    {
+      "station_id": "cidade",
+      "rank": 6,
+      "name": "Cidade FM",
+      "aav_percent": 3.2,
+      "role": "hits jovens, interação e passatempos"
+    },
+    {
+      "station_id": "tsf",
+      "rank": 8,
+      "name": "TSF Rádio Notícias",
+      "aav_percent": 2.6,
+      "role": "notícias, debate e entrevistas"
+    },
+    {
+      "station_id": "mega",
+      "rank": 7,
+      "name": "Mega Hits",
+      "aav_percent": 2.3,
+      "role": "hits jovens e cultura pop"
+    },
+    {
+      "station_id": "antena3",
+      "rank": 9,
+      "name": "Antena 3",
+      "aav_percent": 2.5,
+      "role": "música alternativa, entrevistas e cultura"
+    }
+  ],
+  "default_favorites": [
+    "comercial_manhas_top",
+    "rfm_cafe_manha_top",
+    "rr_tres_manha_top",
+    "tsf_forum_debate",
+    "m80_manhas_classicos",
+    "comercial_ganhar",
+    "comercial_tnt_domingo"
+  ],
+  "programs": [
+    {
+      "id": "madrugada_rfm_musica",
+      "name": "Madrugada Musical — RFM",
+      "station_id": "rfm",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "start": "00:00",
+      "end": "05:30",
+      "presenters": "Seleção musical / emissão contínua",
+      "category": "música",
+      "official": false,
+      "priority": 45,
+      "description": "Bloco leve para manter a rádio 24/7 com música pop sem conversa excessiva.",
+      "tags": [
+        "musica",
+        "pop",
+        "noite"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "pre_manha_antena1",
+      "name": "Pré-Manhã — notícias e serviço público",
+      "station_id": "antena1",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "05:30",
+      "end": "06:00",
+      "presenters": "Redação Antena 1",
+      "category": "notícias",
+      "official": false,
+      "priority": 74,
+      "description": "Meia hora de arranque informativo antes dos grandes programas da manhã.",
+      "tags": [
+        "noticias",
+        "servico-publico"
+      ],
+      "audience_rank_basis": 5,
+      "block_type": "curadoria",
+      "content_mix": [
+        "notícias",
+        "trânsito",
+        "meteorologia"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "mega_snooze_arranque",
+      "name": "Snooze — arranque jovem",
+      "station_id": "mega",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "06:00",
+      "end": "07:00",
+      "presenters": "Pilar Lourenço, Joana Sequeira e Mateus Lourenço",
+      "category": "humor/música jovem",
+      "official": true,
+      "priority": 76,
+      "description": "Arranque com hits, cultura pop e energia jovem antes dos blocos de maior audiência.",
+      "tags": [
+        "musica",
+        "humor",
+        "jovem"
+      ],
+      "audience_rank_basis": 7,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "humor",
+        "interação"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "comercial_manhas_top",
+      "name": "Manhãs da Comercial",
+      "station_id": "comercial",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "07:00",
+      "end": "07:45",
+      "presenters": "Pedro Ribeiro, Vera Fernandes, Vasco Palmeirim, Nuno Markl e equipa",
+      "category": "humor/música",
+      "official": true,
+      "priority": 100,
+      "description": "Primeiro bloco da manhã reservado para a rádio líder: humor, grande ritmo e músicas populares.",
+      "tags": [
+        "humor",
+        "musica",
+        "maior-audiencia"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "programa",
+      "content_mix": [
+        "humor",
+        "música",
+        "rubricas",
+        "passatempos"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "rfm_cafe_manha_top",
+      "name": "Café da Manhã",
+      "station_id": "rfm",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "07:45",
+      "end": "08:20",
+      "presenters": "Pedro Fernandes, Mariana Alvim, Luís Pinheiro e Ana Garcia Martins",
+      "category": "humor/música",
+      "official": true,
+      "priority": 97,
+      "description": "Bloco RFM para humor, atualidade leve e música pop de grande alcance.",
+      "tags": [
+        "humor",
+        "musica",
+        "atualidade"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "programa",
+      "content_mix": [
+        "humor",
+        "música",
+        "atualidade leve"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "rr_tres_manha_top",
+      "name": "As Três da Manhã",
+      "station_id": "renascenca",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "08:20",
+      "end": "08:55",
+      "presenters": "Ana Galvão, Inês Lopes Gonçalves e Joana Marques",
+      "category": "humor/notícias",
+      "official": true,
+      "priority": 98,
+      "description": "Bloco forte de humor e comentário sobre atualidade, com uma das marcas mais reconhecidas da rádio portuguesa.",
+      "tags": [
+        "humor",
+        "noticias",
+        "comentario"
+      ],
+      "audience_rank_basis": 4,
+      "block_type": "programa",
+      "content_mix": [
+        "humor",
+        "notícias",
+        "comentário"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "tsf_manha_flash",
+      "name": "Manhã TSF — atualização informativa",
+      "station_id": "tsf",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "08:55",
+      "end": "09:15",
+      "presenters": "Redação TSF",
+      "category": "notícias",
+      "official": true,
+      "priority": 91,
+      "description": "Flash informativo curto para equilibrar a manhã com manchetes, trânsito, economia e desporto.",
+      "tags": [
+        "noticias",
+        "desporto",
+        "transito"
+      ],
+      "audience_rank_basis": 8,
+      "block_type": "programa",
+      "content_mix": [
+        "notícias",
+        "desporto",
+        "trânsito"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "tsf_forum_debate",
+      "name": "Fórum TSF",
+      "station_id": "tsf",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "09:15",
+      "end": "10:00",
+      "presenters": "Manuel Acácio / equipa TSF",
+      "category": "debate/notícias",
+      "official": true,
+      "priority": 94,
+      "description": "Debate sobre a notícia do dia, útil para dar voz aos ouvintes e inserir opinião pública na grelha.",
+      "tags": [
+        "noticias",
+        "debate",
+        "ouvintes"
+      ],
+      "audience_rank_basis": 8,
+      "block_type": "programa",
+      "content_mix": [
+        "debate",
+        "notícias",
+        "participação dos ouvintes"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "cidade_acorda_jovem",
+      "name": "ACORDA!",
+      "station_id": "cidade",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "10:00",
+      "end": "10:25",
+      "presenters": "Artur Simões, Joana Miranda e Pedro Góias",
+      "category": "música jovem/humor",
+      "official": true,
+      "priority": 82,
+      "description": "Bloco jovem com histórias reais, interação e energia de hits atuais.",
+      "tags": [
+        "jovem",
+        "musica",
+        "humor",
+        "interacao"
+      ],
+      "audience_rank_basis": 6,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "humor",
+        "interação"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "m80_manhas_classicos",
+      "name": "Manhãs da M80",
+      "station_id": "m80",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "10:25",
+      "end": "11:00",
+      "presenters": "Ana Moreira, Paulo Fernandes e Susana Romana",
+      "category": "música/humor",
+      "official": true,
+      "priority": 90,
+      "description": "Clássicos, boa disposição e conversa para manter a força da M80 na grelha da manhã.",
+      "tags": [
+        "classicos",
+        "humor",
+        "musica"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "humor",
+        "rubricas"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "tsf_forum_ouvintes",
+      "name": "Fórum TSF — debate dos ouvintes",
+      "station_id": "tsf",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "11:00",
+      "end": "12:00",
+      "presenters": "Manuel Acácio / equipa TSF",
+      "category": "debate/notícias",
+      "official": true,
+      "priority": 93,
+      "description": "Hora forte de debate e participação pública para dar profundidade à rádio.",
+      "tags": [
+        "noticias",
+        "debate",
+        "ouvintes"
+      ],
+      "audience_rank_basis": 8,
+      "block_type": "programa",
+      "content_mix": [
+        "debate",
+        "entrevistas",
+        "notícias"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "antena1_atualidade_entrevistas",
+      "name": "Antena 1 — atualidade e entrevistas",
+      "station_id": "antena1",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "12:00",
+      "end": "13:00",
+      "presenters": "Redação Antena 1 / equipa RTP",
+      "category": "notícias/entrevistas",
+      "official": true,
+      "priority": 88,
+      "description": "Serviço público, entrevistas, cultura, país real e informação nacional.",
+      "tags": [
+        "noticias",
+        "entrevistas",
+        "cultura",
+        "servico-publico"
+      ],
+      "audience_rank_basis": 5,
+      "block_type": "programa",
+      "content_mix": [
+        "notícias",
+        "entrevistas",
+        "cultura"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "comercial_hits_passatempos",
+      "name": "Comercial — hits e passatempos",
+      "station_id": "comercial",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "13:00",
+      "end": "14:00",
+      "presenters": "Equipa Rádio Comercial",
+      "category": "música/passatempos",
+      "official": false,
+      "priority": 92,
+      "description": "Bloco de almoço com música popular, chamadas de ouvintes, desafios e passatempos.",
+      "tags": [
+        "musica",
+        "passatempos",
+        "hits"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música",
+        "passatempos",
+        "interação"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "rfm_tarde_musica",
+      "name": "RFM — grandes músicas",
+      "station_id": "rfm",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "14:00",
+      "end": "15:30",
+      "presenters": "Equipa RFM",
+      "category": "música",
+      "official": false,
+      "priority": 86,
+      "description": "Bloco musical pop para manter audiência durante a tarde.",
+      "tags": [
+        "musica",
+        "pop"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "comercial_ganhar",
+      "name": "Comercial — janela de passatempos",
+      "station_id": "comercial",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "15:30",
+      "end": "16:00",
+      "presenters": "Equipa Rádio Comercial",
+      "category": "passatempos",
+      "official": false,
+      "priority": 89,
+      "description": "Janela curta focada em concursos, bilhetes, experiências e campanhas da rádio.",
+      "tags": [
+        "passatempos",
+        "ganhar",
+        "ouvintes"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "curadoria",
+      "content_mix": [
+        "passatempos",
+        "interação"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "tsf_tarde_news",
+      "name": "TSF — atualização da tarde",
+      "station_id": "tsf",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "16:00",
+      "end": "16:30",
+      "presenters": "Redação TSF",
+      "category": "notícias",
+      "official": true,
+      "priority": 85,
+      "description": "Atualização de notícias antes do regresso a casa.",
+      "tags": [
+        "noticias",
+        "economia",
+        "desporto"
+      ],
+      "audience_rank_basis": 8,
+      "block_type": "programa",
+      "content_mix": [
+        "notícias",
+        "desporto",
+        "economia"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "mega_drive_in",
+      "name": "Mega Hits — Drive In",
+      "station_id": "mega",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "16:30",
+      "end": "17:30",
+      "presenters": "Madalena, Catarina, Maria e Francisco",
+      "category": "música jovem/entretenimento",
+      "official": true,
+      "priority": 78,
+      "description": "Regresso jovem com música atual e cultura pop.",
+      "tags": [
+        "musica",
+        "jovem",
+        "drive"
+      ],
+      "audience_rank_basis": 7,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "entretenimento",
+        "cultura pop"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "m80_regresso_casa",
+      "name": "M80 — regresso a casa",
+      "station_id": "m80",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "17:30",
+      "end": "18:30",
+      "presenters": "Elsa Teixeira / equipa M80",
+      "category": "música clássicos",
+      "official": true,
+      "priority": 84,
+      "description": "Clássicos para o trânsito e fim de tarde, equilibrando nostalgia e energia.",
+      "tags": [
+        "classicos",
+        "musica",
+        "regresso"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "programa",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "rfm_fim_tarde",
+      "name": "RFM — fim de tarde musical",
+      "station_id": "rfm",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "18:30",
+      "end": "19:00",
+      "presenters": "Equipa RFM",
+      "category": "música",
+      "official": false,
+      "priority": 80,
+      "description": "Fecho musical do drive time antes do jornal/entrevista da noite.",
+      "tags": [
+        "musica",
+        "pop"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "antena1_jornal_noite",
+      "name": "Antena 1 — jornal e atualidade",
+      "station_id": "antena1",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "start": "19:00",
+      "end": "20:00",
+      "presenters": "Redação Antena 1",
+      "category": "notícias",
+      "official": true,
+      "priority": 87,
+      "description": "Hora diária para informação, política, sociedade, desporto e contexto nacional.",
+      "tags": [
+        "noticias",
+        "servico-publico"
+      ],
+      "audience_rank_basis": 5,
+      "block_type": "programa",
+      "content_mix": [
+        "notícias",
+        "entrevistas",
+        "desporto"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "antena3_prova_oral",
+      "name": "Prova Oral",
+      "station_id": "antena3",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "20:00",
+      "end": "21:00",
+      "presenters": "Fernando Alvim",
+      "category": "entrevistas/conversa",
+      "official": true,
+      "priority": 83,
+      "description": "Conversas e entrevistas num registo mais livre, ideal para a noite.",
+      "tags": [
+        "entrevistas",
+        "conversa",
+        "cultura"
+      ],
+      "audience_rank_basis": 9,
+      "block_type": "programa",
+      "content_mix": [
+        "entrevistas",
+        "humor",
+        "cultura"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "antena3_portugalia",
+      "name": "Portugália",
+      "station_id": "antena3",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "start": "21:00",
+      "end": "22:00",
+      "presenters": "Henrique Amaro",
+      "category": "música portuguesa",
+      "official": true,
+      "priority": 81,
+      "description": "Hora dedicada a música portuguesa e descoberta cultural.",
+      "tags": [
+        "musica-portuguesa",
+        "cultura",
+        "descoberta"
+      ],
+      "audience_rank_basis": 9,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "cultura"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "m80_slow_down",
+      "name": "M80 — Slow Down / clássicos da noite",
+      "station_id": "m80",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "start": "22:00",
+      "end": "23:00",
+      "presenters": "Paula Fialho / equipa M80",
+      "category": "música calma",
+      "official": true,
+      "priority": 78,
+      "description": "Clássicos mais calmos para a noite.",
+      "tags": [
+        "classicos",
+        "noite",
+        "m80"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "programa",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "rfm_noite_musical",
+      "name": "RFM — noite musical",
+      "station_id": "rfm",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "start": "23:00",
+      "end": "00:00",
+      "presenters": "Equipa RFM",
+      "category": "música",
+      "official": false,
+      "priority": 65,
+      "description": "Fecho do dia com música pop e ambiente leve.",
+      "tags": [
+        "musica",
+        "noite"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_m80_manha",
+      "name": "Fim de semana — M80 manhã",
+      "station_id": "m80",
+      "days": [
+        5,
+        6
+      ],
+      "start": "05:30",
+      "end": "09:00",
+      "presenters": "Equipa M80",
+      "category": "música clássicos",
+      "official": false,
+      "priority": 72,
+      "description": "Manhã de fim de semana com clássicos e companhia leve.",
+      "tags": [
+        "classicos",
+        "fim-de-semana"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_antena1_cultura",
+      "name": "Antena 1 — notícias e cultura de fim de semana",
+      "station_id": "antena1",
+      "days": [
+        5,
+        6
+      ],
+      "start": "09:00",
+      "end": "10:00",
+      "presenters": "Redação Antena 1 / equipa RTP",
+      "category": "notícias/cultura",
+      "official": false,
+      "priority": 79,
+      "description": "Informação e cultura para equilibrar a manhã de fim de semana.",
+      "tags": [
+        "noticias",
+        "cultura",
+        "entrevistas"
+      ],
+      "audience_rank_basis": 5,
+      "block_type": "curadoria",
+      "content_mix": [
+        "notícias",
+        "cultura",
+        "entrevistas"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_comercial_hits",
+      "name": "Comercial — fim de semana hits",
+      "station_id": "comercial",
+      "days": [
+        5
+      ],
+      "start": "10:00",
+      "end": "13:00",
+      "presenters": "Equipa Rádio Comercial",
+      "category": "música/passatempos",
+      "official": false,
+      "priority": 84,
+      "description": "Hits, boa disposição e possíveis passatempos/eventos de fim de semana.",
+      "tags": [
+        "musica",
+        "passatempos",
+        "fim-de-semana"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música",
+        "passatempos"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_rfm_musica",
+      "name": "RFM — fim de semana grandes músicas",
+      "station_id": "rfm",
+      "days": [
+        5,
+        6
+      ],
+      "start": "13:00",
+      "end": "15:00",
+      "presenters": "Equipa RFM",
+      "category": "música",
+      "official": false,
+      "priority": 76,
+      "description": "Bloco pop para almoço e início da tarde.",
+      "tags": [
+        "musica",
+        "pop",
+        "fim-de-semana"
+      ],
+      "audience_rank_basis": 2,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_m80_tarde",
+      "name": "M80 — tarde de clássicos",
+      "station_id": "m80",
+      "days": [
+        5,
+        6
+      ],
+      "start": "15:00",
+      "end": "17:00",
+      "presenters": "Equipa M80",
+      "category": "música clássicos",
+      "official": false,
+      "priority": 74,
+      "description": "Clássicos para a tarde de sábado e domingo.",
+      "tags": [
+        "classicos",
+        "musica"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_cidade_mega",
+      "name": "Cidade/Mega — hits jovens",
+      "station_id": "cidade",
+      "days": [
+        5,
+        6
+      ],
+      "start": "17:00",
+      "end": "18:00",
+      "presenters": "Equipa Cidade FM",
+      "category": "música jovem/passatempos",
+      "official": false,
+      "priority": 66,
+      "description": "Hora jovem com hits atuais, interação e energia antes do prime time.",
+      "tags": [
+        "jovem",
+        "hits",
+        "passatempos"
+      ],
+      "audience_rank_basis": 6,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música",
+        "interação",
+        "passatempos"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "comercial_sabado_top_passatempos",
+      "name": "Comercial — top hits e passatempos",
+      "station_id": "comercial",
+      "days": [
+        5
+      ],
+      "start": "18:00",
+      "end": "20:00",
+      "presenters": "Equipa Rádio Comercial",
+      "category": "música/passatempos",
+      "official": false,
+      "priority": 82,
+      "description": "Bloco de sábado inspirado no perfil musical e promocional da Comercial.",
+      "tags": [
+        "musica",
+        "top",
+        "passatempos"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música",
+        "passatempos"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "comercial_tnt_domingo",
+      "name": "TNT — Todos no Top",
+      "station_id": "comercial",
+      "days": [
+        6
+      ],
+      "start": "18:00",
+      "end": "20:00",
+      "presenters": "Mariana Pinto e André Penim",
+      "category": "top musical",
+      "official": true,
+      "priority": 88,
+      "description": "Top semanal da Comercial ao domingo, das 18h às 20h.",
+      "tags": [
+        "musica",
+        "top",
+        "votacao"
+      ],
+      "audience_rank_basis": 1,
+      "block_type": "programa",
+      "content_mix": [
+        "música",
+        "votação",
+        "ranking"
+      ],
+      "source_note": ""
+    },
+    {
+      "id": "weekend_m80_prime",
+      "name": "M80 — noite clássicos",
+      "station_id": "m80",
+      "days": [
+        5,
+        6
+      ],
+      "start": "20:00",
+      "end": "22:00",
+      "presenters": "Equipa M80",
+      "category": "música clássicos",
+      "official": false,
+      "priority": 72,
+      "description": "Noite de fim de semana com clássicos.",
+      "tags": [
+        "classicos",
+        "noite"
+      ],
+      "audience_rank_basis": 3,
+      "block_type": "curadoria",
+      "content_mix": [
+        "música"
+      ],
+      "source_note": ""
+    }
+  ]
+}
